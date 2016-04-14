@@ -16,6 +16,8 @@ Utilise Python sockets for networking (goodbye sockets.inc), SQL connections for
 
 ## How?
 
+When called, a new thread is created to run the module which then drops the result onto a stack when it's finished. ProcessTick grabs the stack data and calls the correct AMX callback. It's not threadsafe yet since there are no mutexes but the underlying framework works. The first few code commits can actually be used to build any threaded SA:MP plugin since the Python stuff wasn't added until later.
+
 It's a pretty basic plugin and could be very easily adapted to call scripts in any language (or just system calls) including JavaScript, Ruby, Perl, etc.
 
 ### Talking of system calls, why not just use exec?
