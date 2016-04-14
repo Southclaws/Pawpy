@@ -15,5 +15,7 @@
 #include <malloc.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <direct.h>
 
 void samp_printf(const char* message, ...);
+void samp_pyerr();

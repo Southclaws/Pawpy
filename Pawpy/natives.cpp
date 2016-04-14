@@ -19,12 +19,14 @@ cell AMX_NATIVE_CALL Native::PawpyExec(AMX * amx, cell * params)
 {
 	string
 		module,
+		function,
 		callback;
 
 	module = amx_GetCppString(amx, params[1]);
-	callback = amx_GetCppString(amx, params[2]);
+	function = amx_GetCppString(amx, params[2]);
+	callback = amx_GetCppString(amx, params[3]);
 
-	Pawpy::execCall(module, callback);
+	Pawpy::thread_call(module, function, callback);
 
 	return 0;
 }

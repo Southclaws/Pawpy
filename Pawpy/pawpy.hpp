@@ -27,6 +27,7 @@ namespace Pawpy
 struct pycall_t
 {
 	string module;
+	string function;
 	string callback;
 	std::thread::id threadid;
 	char* returns;
@@ -34,10 +35,10 @@ struct pycall_t
 
 extern stack<Pawpy::pycall_t> call_stack;
 
-int execCall(string module, string callback);
-void runCall(pycall_t pycall);
+int thread_call(string module, string function, string callback);
+void run_call(pycall_t pycall);
 
-void amxProcessTick(AMX* amx);
+void amx_tick(AMX* amx);
 
 }
 
