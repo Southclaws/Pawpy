@@ -83,7 +83,7 @@ void Pawpy::run_call(pycall_t pycall)
 
 	name_ptr = PyUnicode_FromString(pycall.function.c_str());
 
-	if(PyObject_HasAttr(module_ptr, name_ptr) != NULL)
+	if(PyObject_HasAttr(module_ptr, name_ptr) == NULL)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to convert function name to function object: '%s'", pycall.function.c_str());
@@ -93,7 +93,7 @@ void Pawpy::run_call(pycall_t pycall)
 	Py_DECREF(name_ptr);
 
 	PyObject* func_ptr = nullptr;
-	
+
 	func_ptr = PyObject_GetAttr(module_ptr, name_ptr);
 
 	if(func_ptr == nullptr)
@@ -125,11 +125,9 @@ void Pawpy::run_call(pycall_t pycall)
 		Loop args, PyLong_FromLong/String/Array then PyTuple_SetItem, etc.
 	*/
 
-	samp_printf("PyObject_CallObject");
 	PyObject* result_ptr = PyObject_CallObject(func_ptr, args_ptr);
 	Py_DECREF(args_ptr);
 
-	samp_printf("PyObject_CallObject after");
 	if(result_ptr == nullptr)
 	{
 		samp_pyerr();
@@ -138,11 +136,8 @@ void Pawpy::run_call(pycall_t pycall)
 
 	long result_val = PyLong_AsLong(result_ptr);
 	char result_str[24];
-	samp_printf("result: %d", result_val);
 
 	_ltoa_s(result_val, result_str, 10);
-
-		samp_printf("return: '%s'", result_str);
 
 	pycall.returns = _strdup(result_str);
 	call_stack.push(pycall);
@@ -155,8 +150,6 @@ void Pawpy::amx_tick(AMX* amx)
 	if(call_stack.empty())
 		return;
 
-	samp_printf("amx %x", amx);
-
 	Pawpy::pycall_t call;
 	int error = 0;
 	int amx_idx = -1;
@@ -167,8 +160,6 @@ void Pawpy::amx_tick(AMX* amx)
 	while(!Pawpy::call_stack.empty())
 	{
 		call = Pawpy::call_stack.top();
-
-		samp_printf("call: '%s'", call.callback.c_str());
 
 		error = amx_FindPublic(amx, call.callback.c_str(), &amx_idx);
 
@@ -189,8 +180,6 @@ void Pawpy::amx_tick(AMX* amx)
 			case 1:
 				continue;
 			}
-
-			samp_printf("return value: %d", amx_ret);
 		}
 		else
 		{
