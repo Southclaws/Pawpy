@@ -59,6 +59,8 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 	
 	Py_SetProgramName(L"Pawpy");
 	Py_Initialize();
+	PyEval_InitThreads();
+	PyEval_ReleaseLock();
 
 	samp_printf("\n");
 	samp_printf("Pawpy - Python utility for Pawn by Southclaw");
@@ -160,7 +162,8 @@ void samp_pyerr()
 
 extern "C" const AMX_NATIVE_INFO native_list[] = 
 {
-	{"PawpyExec", Native::PawpyExec},
+	{"RunPython", Native::RunPython},
+	{"RunPythonThreaded", Native::RunPythonThreaded},
 	{NULL, NULL}
 };
 

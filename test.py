@@ -1,7 +1,17 @@
+import configparser
 import shutil
 import os
 import sys
-path = sys.argv[1]
-shutil.copyfile("../%s/Pawpy.dll"%(path), "E:/Games/Projects/SA-MP/Blank/plugins/Pawpy.dll")
-os.chdir("E:/Games/Projects/SA-MP/Blank/")
-os.system("E:/Games/Projects/SA-MP/Blank/samp-server.exe")
+
+# load samp server path to use as test
+cfg = configparser.ConfigParser()
+cfg.read("test.config")
+
+print(cfg["test"]["samp_path"])
+
+dll_path = sys.argv[1]
+samp_path = cfg["test"]["samp_path"]
+
+shutil.copyfile("%s/Pawpy.dll"%(dll_path), "%s/plugins/Pawpy.dll"%(samp_path))
+os.chdir(samp_path)
+os.system("samp-server.exe")

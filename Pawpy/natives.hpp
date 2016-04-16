@@ -31,7 +31,8 @@
 
 namespace Native 
 {
-	cell AMX_NATIVE_CALL PawpyExec(AMX *amx, cell *params);
+	cell AMX_NATIVE_CALL RunPython(AMX *amx, cell *params);
+	cell AMX_NATIVE_CALL RunPythonThreaded(AMX *amx, cell *params);
 };
 
 #endif

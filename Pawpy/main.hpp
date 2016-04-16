@@ -34,3 +34,9 @@
 
 void samp_printf(const char* message, ...);
 void samp_pyerr();
+
+#ifdef _DEBUG
+#define debug(message, ...) samp_printf(message, __VA_ARGS__)
+#else
+#define debug(message, ...)
+#endif

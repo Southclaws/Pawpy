@@ -1,2 +1,2 @@
-python ../test.py Release
+python test.py Release
 pause

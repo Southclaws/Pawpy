@@ -37,8 +37,23 @@ using std::thread;
 stack<Pawpy::pycall_t> Pawpy::call_stack;
 
 
-int Pawpy::thread_call(string module, string function, string callback)
+int Pawpy::run_python(string module, string function, string callback)
 {
+	debug("run_python: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
+
+	pycall_t call;
+
+	call.module = module;
+	call.function = function;
+	call.callback = callback;
+
+	return run_call(call);
+}
+
+int Pawpy::run_python_threaded(string module, string function, string callback)
+{
+	debug("run_python_threaded: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
+
 	pycall_t call;
 	thread* t = nullptr;
 
@@ -46,11 +61,12 @@ int Pawpy::thread_call(string module, string function, string callback)
 	call.function = function;
 	call.callback = callback;
 
-	t = new thread(run_call, call);
+	debug("run_python_threaded: creating thread");
+	t = new thread(run_call_thread, call);
 
 	if(t == nullptr)
 	{
-		// raise
+		samp_printf("ERROR: Unable to create thread for Python call.");
 		return 1;
 	}
 
@@ -63,15 +79,36 @@ int Pawpy::thread_call(string module, string function, string callback)
 	return 0;
 }
 
-void Pawpy::run_call(pycall_t pycall)
+void Pawpy::run_call_thread(pycall_t pycall)
 {
+	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
+
+	PyGILState_STATE gstate = PyGILState_Ensure();
+
+	debug("run_call_thread: calling run_call");
+	long result_val = run_call(pycall);
+
+	PyGILState_Release(gstate);
+
+	char result_str[24];
+
+	_ltoa_s(result_val, result_str, 10);
+
+	pycall.returns = _strdup(result_str);
+	call_stack.push(pycall);
+}
+
+long Pawpy::run_call(pycall_t pycall)
+{
+	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
+
 	PyObject* name_ptr = PyUnicode_FromString(pycall.module.c_str());
 
 	if(name_ptr == nullptr)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to convert module name to PyUnicode object.");
-		return;
+		return 0;
 	}
 
 	char* cwd;
@@ -91,21 +128,23 @@ void Pawpy::run_call(pycall_t pycall)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to load module: '%s'", pycall.module.c_str());
-        return;
+        return 0;
     }
 
 	Py_DECREF(name_ptr);
+	debug("run_call: imported module '%s'", pycall.module.c_str());
 
 	name_ptr = PyUnicode_FromString(pycall.function.c_str());
 
 	if(PyObject_HasAttr(module_ptr, name_ptr) == NULL)
 	{
         samp_pyerr();
-        samp_printf("ERROR: Failed to convert function name to function object: '%s'", pycall.function.c_str());
-        return;
+        samp_printf("ERROR: Module has no attribute: '%s'", pycall.function.c_str());
+        return 0;
 	}
 
 	Py_DECREF(name_ptr);
+	debug("run_call: scanned for attribute '%s'", pycall.function.c_str());
 
 	PyObject* func_ptr = nullptr;
 
@@ -115,15 +154,17 @@ void Pawpy::run_call(pycall_t pycall)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to convert function name to function object: '%s'", pycall.function.c_str());
-        return;
+        return 0;
 	}
 
 	if(!PyCallable_Check(func_ptr))
 	{
         samp_pyerr();
         samp_printf("ERROR: Function not found or is not callable: '%s'", pycall.function.c_str());
-        return;
+        return 0;
 	}
+
+	debug("run_call: checked for function existence and callability '%s'", pycall.function.c_str());
 
 	PyObject* args_ptr = PyTuple_New(0);
 
@@ -131,8 +172,10 @@ void Pawpy::run_call(pycall_t pycall)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to create new PyTuple object.");
-        return;
+        return 0;
 	}
+
+	debug("run_call: created argument tuple");
 
 	/*
 		Todo: process arguments of various types from Pawn call.
@@ -140,8 +183,12 @@ void Pawpy::run_call(pycall_t pycall)
 		Loop args, PyLong_FromLong/String/Array then PyTuple_SetItem, etc.
 	*/
 
+	debug("run_call: calling into Python module '%s' at function '%s'", pycall.module.c_str(), pycall.function.c_str());
+
 	PyObject* result_ptr = PyObject_CallObject(func_ptr, args_ptr);
 	Py_DECREF(args_ptr);
+
+	debug("run_call: finished running Python module");
 
 	if(result_ptr == nullptr)
 	{
@@ -150,14 +197,9 @@ void Pawpy::run_call(pycall_t pycall)
 	}
 
 	long result_val = PyLong_AsLong(result_ptr);
-	char result_str[24];
+	debug("run_call: optained module result value '%d' and returning", result_val);
 
-	_ltoa_s(result_val, result_str, 10);
-
-	pycall.returns = _strdup(result_str);
-	call_stack.push(pycall);
-
-	return;
+	return result_val;
 }
 
 void Pawpy::amx_tick(AMX* amx)
@@ -180,6 +222,8 @@ void Pawpy::amx_tick(AMX* amx)
 
 		if(error == AMX_ERR_NONE)
 		{
+			debug("amx_tick callback: %s, %s, %s", call.module.c_str(), call.function.c_str(), call.callback.c_str());
+
 			// callback format: (string[], len)
 			amx_Push(amx, strlen(call.returns));
 			amx_PushString(amx, &amx_addr, &phys_addr, call.returns, 0, 0);

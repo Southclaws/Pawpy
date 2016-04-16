@@ -30,8 +30,28 @@ using std::string;
 #include "pawpy.hpp"
 
 
-cell AMX_NATIVE_CALL Native::PawpyExec(AMX * amx, cell * params)
+cell AMX_NATIVE_CALL Native::RunPython(AMX * amx, cell * params)
 {
+	debug("Native::RunPython called");
+
+	string
+		module,
+		function,
+		callback;
+
+	module = amx_GetCppString(amx, params[1]);
+	function = amx_GetCppString(amx, params[2]);
+	callback = "";
+
+	Pawpy::run_python(module, function, callback);
+
+	return 0;
+}
+
+cell AMX_NATIVE_CALL Native::RunPythonThreaded(AMX * amx, cell * params)
+{
+	debug("Native::RunPythonThreaded called");
+
 	string
 		module,
 		function,
@@ -40,8 +60,10 @@ cell AMX_NATIVE_CALL Native::PawpyExec(AMX * amx, cell * params)
 	module = amx_GetCppString(amx, params[1]);
 	function = amx_GetCppString(amx, params[2]);
 	callback = amx_GetCppString(amx, params[3]);
+	debug("Native::RunPythonThreaded optained parameters");
 
-	Pawpy::thread_call(module, function, callback);
+	Pawpy::run_python_threaded(module, function, callback);
+	debug("Native::RunPythonThreaded finished");
 
 	return 0;
 }

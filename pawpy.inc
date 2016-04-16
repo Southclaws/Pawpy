@@ -22,5 +22,5 @@
 ==============================================================================*/
 
 
-forward RunPython();
-forward RunPythonThreaded();
+native RunPython(module[], function[]);
+native RunPythonThreaded(module[], function[], callback[]);

@@ -1,2 +1,2 @@
-python ../test.py Debug
+python test.py Debug
 pause
