@@ -28,10 +28,12 @@
 #include <string>
 #include <stack>
 #include <thread>
+#include <mutex>
 
 using std::string;
 using std::stack;
 using std::thread;
+using std::mutex;
 
 #include "main.hpp"
 #include <sdk.hpp>
@@ -49,6 +51,7 @@ struct pycall_t
 };
 
 extern stack<Pawpy::pycall_t> call_stack;
+extern mutex call_stack_mutex;
 
 int run_python(string module, string function, string callback);
 int run_python_threaded(string module, string function, string callback);

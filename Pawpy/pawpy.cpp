@@ -23,9 +23,14 @@
 
 
 #include <string>
+#include <stack>
 #include <thread>
+#include <mutex>
 
+using std::string;
+using std::stack;
 using std::thread;
+using std::mutex;
 
 #include "main.hpp"
 #include "python_meta.hpp"
@@ -35,6 +40,7 @@ using std::thread;
 
 
 stack<Pawpy::pycall_t> Pawpy::call_stack;
+mutex Pawpy::call_stack_mutex;
 
 
 int Pawpy::run_python(string module, string function, string callback)
@@ -95,7 +101,10 @@ void Pawpy::run_call_thread(pycall_t pycall)
 	_ltoa_s(result_val, result_str, 10);
 
 	pycall.returns = _strdup(result_str);
+
+	call_stack_mutex.lock();
 	call_stack.push(pycall);
+	call_stack_mutex.unlock();
 }
 
 long Pawpy::run_call(pycall_t pycall)
@@ -204,6 +213,9 @@ long Pawpy::run_call(pycall_t pycall)
 
 void Pawpy::amx_tick(AMX* amx)
 {
+	if(call_stack_mutex.try_lock() == false)
+		return;
+
 	if(call_stack.empty())
 		return;
 
@@ -247,4 +259,6 @@ void Pawpy::amx_tick(AMX* amx)
 
 		Pawpy::call_stack.pop();
 	}
+
+	call_stack_mutex.unlock();
 }
