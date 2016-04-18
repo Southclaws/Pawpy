@@ -18,11 +18,19 @@
 		You should have received a copy of the GNU General Public License along
 		with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+	Note:
+		This file includes general libraries and declares functions used
+		throughout the plugin.
+
 
 ==============================================================================*/
 
 
-// platform specifics
+/*
+	Note:
+	This tells the Python library that stdint is available, it doesn't work
+	without this for some unknown reason.
+*/
 #ifndef HAVE_STDINT_H
 #define HAVE_STDINT_H
 #endif
@@ -32,9 +40,20 @@
 #include <stdarg.h>
 #include <direct.h>
 
+/*
+	Note:
+	Wraps the logprintf function. Could have been done with a simple call to
+	logprintf where the function pointer is stored globally but this happened.
+*/
 void samp_printf(const char* message, ...);
 void samp_pyerr();
 
+/*
+	Note:
+	Lazy debug mode. When VS is out of debug mode, the debug calls are ignored
+	from compilation completely. This method means there are no #if directives
+	littered around the code.
+*/
 #ifdef _DEBUG
 #define debug(message, ...) samp_printf(message, __VA_ARGS__)
 #else

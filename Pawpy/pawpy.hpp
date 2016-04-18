@@ -18,6 +18,11 @@
 		You should have received a copy of the GNU General Public License along
 		with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+	Note:
+		This header and it's counterpart .cpp are the only two files that don't
+		really contain generic SA:MP plugin boilerplate code. See the .cpp for
+		implementation details.
+
 
 ==============================================================================*/
 

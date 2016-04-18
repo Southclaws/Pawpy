@@ -18,6 +18,16 @@
 		You should have received a copy of the GNU General Public License along
 		with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+	Note:
+		This is a special header file that declares the natives to export to the
+		SA:MP server. These function declarations are a little different to
+		regular C++ library exports. Their return type must be "cell" which
+		refers to the byte-width of all Pawn variables. This set of declarations
+		also maps to the "native_list" array in "main.cpp". The functions here
+		will mean nothing without that "native_list" filled in as that's the
+		part that actually tells SA:MP the function addresses of these functions
+		so it can call them.
+
 
 ==============================================================================*/
 
@@ -31,8 +41,8 @@
 
 namespace Native 
 {
-	cell AMX_NATIVE_CALL RunPython(AMX *amx, cell *params);
-	cell AMX_NATIVE_CALL RunPythonThreaded(AMX *amx, cell *params);
+	cell RunPython(AMX *amx, cell *params);
+	cell RunPythonThreaded(AMX *amx, cell *params);
 };
 
 #endif

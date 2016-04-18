@@ -18,6 +18,10 @@
 		You should have received a copy of the GNU General Public License along
 		with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+	Note:
+		This file contains the actual Python calling code, thread code and all
+		other features specific to the plugin.
+
 
 ==============================================================================*/
 
@@ -39,10 +43,33 @@ using std::mutex;
 #include <sdk.hpp>
 
 
+/*
+	Note:
+	Contains a list of "pycall_t" objects that have finished processing. When a
+	thread has finished running a Python script, it will store the return value
+	inside the corresponding pycall_t object it is associated with then store
+	that object on this stack. When the AMX calls ProcessTick, it will process
+	whatever pycall_t objects are stored on it. This is the bread and butter of
+	thread-safe SA:MP plugins.
+*/
 stack<Pawpy::pycall_t> Pawpy::call_stack;
+
+/*
+	Note:
+	This mutex protects the call_stack from race conditions. Since each Python
+	script runs in a thread, two scripts could finished at the same time and try
+	to write their processed pycall_t objects into the stack. This is standard
+	when working with threads, if you are unaware of mutexes and race conditions
+	please go read about these topics before touching threaded applications in
+	any language!
+*/
 mutex Pawpy::call_stack_mutex;
 
 
+/*
+	Note:
+	Prepares a pycall_t object to be called on the main thread.
+*/
 int Pawpy::run_python(string module, string function, string callback)
 {
 	debug("run_python: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
@@ -56,6 +83,10 @@ int Pawpy::run_python(string module, string function, string callback)
 	return run_call(call);
 }
 
+/*
+	Note:
+	Prepares a pycall_t object and creates a thread to run it.
+*/
 int Pawpy::run_python_threaded(string module, string function, string callback)
 {
 	debug("run_python_threaded: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
@@ -85,6 +116,13 @@ int Pawpy::run_python_threaded(string module, string function, string callback)
 	return 0;
 }
 
+/*
+	Note:
+	This function runs inside a thread created from run_python_threaded. It
+	calls the Python main calling function and processes the result. When the
+	result is ready, it locks the call_stack and pushes the pycall_t object
+	ready for the next ProcessTick to call into the AMX with the result.
+*/
 void Pawpy::run_call_thread(pycall_t pycall)
 {
 	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
@@ -107,6 +145,13 @@ void Pawpy::run_call_thread(pycall_t pycall)
 	call_stack_mutex.unlock();
 }
 
+/*
+	Note:
+	This function takes a pycall_t object and runs the actual Python module it
+	specifies. It returns the result as a long but this will probably change.
+	The code is quite daunting and most of it is converting and validating types
+	from C to Python.
+*/
 long Pawpy::run_call(pycall_t pycall)
 {
 	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
@@ -120,6 +165,16 @@ long Pawpy::run_call(pycall_t pycall)
 		return 0;
 	}
 
+	/*
+		Note:
+		This gets the "cwd" (current working directory) and appends it to the
+		Python module search path (sys.path) so that .py files in the SA:MP
+		server directory are found. Because of Python's module abstraction,
+		scripts in subdirectories are specified by . as the directory delimiter
+		instead of a / character. I was going to hard-code a ./scripts/
+		directory since most users would probably want their scripts organised
+		in some way but I'll leave that up to users to decide.
+	*/
 	char* cwd;
 
 	cwd = _getcwd(NULL, 0);
@@ -131,6 +186,10 @@ long Pawpy::run_call(pycall_t pycall)
 
 	free(cwd);
 
+	/*
+		Note:
+		Imports the module specified by pycall into the interpreter.
+	*/
 	PyObject* module_ptr = PyImport_Import(name_ptr);
 
 	if(module_ptr == nullptr)
@@ -143,6 +202,10 @@ long Pawpy::run_call(pycall_t pycall)
 	Py_DECREF(name_ptr);
 	debug("run_call: imported module '%s'", pycall.module.c_str());
 
+	/*
+		Note:
+		Checks if the function specified in pycall exists in the loaded module.
+	*/
 	name_ptr = PyUnicode_FromString(pycall.function.c_str());
 
 	if(PyObject_HasAttr(module_ptr, name_ptr) == NULL)
@@ -155,6 +218,10 @@ long Pawpy::run_call(pycall_t pycall)
 	Py_DECREF(name_ptr);
 	debug("run_call: scanned for attribute '%s'", pycall.function.c_str());
 
+	/*
+		Note:
+		Loads the function specified in pycall into a PyObject ready to call.
+	*/
 	PyObject* func_ptr = nullptr;
 
 	func_ptr = PyObject_GetAttr(module_ptr, name_ptr);
@@ -166,6 +233,12 @@ long Pawpy::run_call(pycall_t pycall)
         return 0;
 	}
 
+	/*
+		Note:
+		Checks if this is a "callable" object. Everything is an object in Python
+		so the "attribute" we loaded earlier could actually be a class or a
+		variable so this check ensures it's something we can "call".
+	*/
 	if(!PyCallable_Check(func_ptr))
 	{
         samp_pyerr();
@@ -175,6 +248,10 @@ long Pawpy::run_call(pycall_t pycall)
 
 	debug("run_call: checked for function existence and callability '%s'", pycall.function.c_str());
 
+	/*
+		Note:
+		This tuple contains the arguments we're passing to the Python function.
+	*/
 	PyObject* args_ptr = PyTuple_New(0);
 
 	if(args_ptr == nullptr)
@@ -194,6 +271,11 @@ long Pawpy::run_call(pycall_t pycall)
 
 	debug("run_call: calling into Python module '%s' at function '%s'", pycall.module.c_str(), pycall.function.c_str());
 
+	/*
+		Note:
+		The actual function call. The function and arguments that were prepared
+		and validated earlier are passed in and everything should run smoothly.
+	*/
 	PyObject* result_ptr = PyObject_CallObject(func_ptr, args_ptr);
 	Py_DECREF(args_ptr);
 
@@ -205,14 +287,36 @@ long Pawpy::run_call(pycall_t pycall)
 		samp_printf("ERROR: Python function call failed.");
 	}
 
+	/*
+		Note:
+		Gets the return value of the result from the call. Currently only
+		supports "single cell" types (ints and single chars should convert too)
+	*/
 	long result_val = PyLong_AsLong(result_ptr);
 	debug("run_call: optained module result value '%d' and returning", result_val);
 
 	return result_val;
 }
 
+/*
+	Note:
+	This is a ProcessTick function called for each AMX instance (see main.cpp)
+	The call_stack is checked for contents; when call_stack contains objects,
+	they are looped and processed in the order they were pushed. For each pycall
+	the AMX code searches for the public callback function, pushes the result
+	stored in the pycall object from the end of run_call onto the parameters and
+	calls the function in Pawn, the circle is complete!
+*/
 void Pawpy::amx_tick(AMX* amx)
 {
+	/*
+		Note:
+		Non-blocking mutex check. Calling .lock() here would result in the
+		ProcessTick function getting blocked until the call_stack lock is
+		released. Albeit this would probably be a very short time as pushes only
+		ever occur on this object but just to be safe, if it's locked the plugin
+		simply waits for the next ProcessTick call.
+	*/
 	if(call_stack_mutex.try_lock() == false)
 		return;
 
@@ -236,7 +340,13 @@ void Pawpy::amx_tick(AMX* amx)
 		{
 			debug("amx_tick callback: %s, %s, %s", call.module.c_str(), call.function.c_str(), call.callback.c_str());
 
-			// callback format: (string[], len)
+			/*
+				Note:
+				Callback parameters are pushed in reverse order. So in this case
+				call.returns is the last parameter in the Pawn native, but here
+				it is pushed first.
+				The callback parameter format is: (string[], len)
+			*/
 			amx_Push(amx, strlen(call.returns));
 			amx_PushString(amx, &amx_addr, &phys_addr, call.returns, 0, 0);
 			amx_PushString(amx, &amx_addr, &phys_addr, call.module.c_str(), 0, 0);
@@ -260,5 +370,11 @@ void Pawpy::amx_tick(AMX* amx)
 		Pawpy::call_stack.pop();
 	}
 
+	/*
+		Note:
+		Unlocks the call_stack mutex. try_lock doesn't just test for locks in a
+		non-blocking way, it does the locking too if it can. So unlocking must
+		be done too.
+	*/
 	call_stack_mutex.unlock();
 }
