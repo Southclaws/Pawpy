@@ -16,6 +16,8 @@ Utilise Python sockets for networking (goodbye sockets.inc), SQL connections for
 
 ## How?
 
+*If you're interested in the details of this plugin (and SA:MP plugins in general) there are many comments throughout the code. The main files of interest are: main.hpp, main.cpp, natives.hpp, natives.cpp, pawpy.hpp, pawpy.cpp (I advise you read them in that order too) Feel free to email questions but do not clutter the issues section, that's reserved for bugs and improvements only!*
+
 When called, a new thread is created to run the module which then drops the result onto a stack when it's finished. ProcessTick grabs the stack data and calls the correct AMX callback. It's not threadsafe yet since there are no mutexes but the underlying framework works. The first few code commits can actually be used to build any threaded SA:MP plugin since the Python stuff wasn't added until later.
 
 It's a pretty basic plugin and could be very easily adapted to call scripts in any language (or just system calls) including JavaScript, Ruby, Perl, etc.
