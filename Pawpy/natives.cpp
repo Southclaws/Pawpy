@@ -60,13 +60,46 @@ cell Native::RunPython(AMX* amx, cell* params)
 	string
 		module,
 		function,
-		argformat,
 		callback;
 
+	vector<string> arguments = extract_params(amx, params, 3);
+
+	module = amx_GetCppString(amx, params[1]);
+	function = amx_GetCppString(amx, params[2]);
+	callback = "";
+
+	return Pawpy::run_python(module, function, callback, arguments);
+}
+
+cell Native::RunPythonThreaded(AMX* amx, cell* params)
+{
+	debug("Native::RunPythonThreaded called");
+
+	string
+		module,
+		function,
+		callback;
+
+	vector<string> arguments = extract_params(amx, params, 4);
+
+	module = amx_GetCppString(amx, params[1]);
+	function = amx_GetCppString(amx, params[2]);
+	callback = amx_GetCppString(amx, params[3]);
+	debug("Native::RunPythonThreaded optained parameters");
+
+	Pawpy::run_python_threaded(module, function, callback, arguments);
+	debug("Native::RunPythonThreaded finished");
+
+	return 0;
+}
+
+vector<string> Native::extract_params(AMX* amx, cell* params, uint8_t base_arg_count)
+{
+	string argformat = amx_GetCppString(amx, params[base_arg_count]);
 	size_t numargs = static_cast<cell>(params[0] / sizeof(cell));
 
 	vector<string> arguments;
-	arguments.reserve(numargs - 3);
+	arguments.reserve(numargs - base_arg_count);
 	uint8_t arg_count = 0;
 	cell *addr_ptr = nullptr;
 	cell arg_value;
@@ -74,15 +107,10 @@ cell Native::RunPython(AMX* amx, cell* params)
 	cell *addr_ptr_arr = nullptr;
 	string array_string;
 
-	module = amx_GetCppString(amx, params[1]);
-	function = amx_GetCppString(amx, params[2]);
-	argformat = amx_GetCppString(amx, params[3]);
-	callback = "";
-
-	if(argformat.length() != numargs - 3)
+	if(argformat.length() != numargs - base_arg_count)
 	{
-		samp_printf("ERROR: Argument length (%d) does not match format specifier count (%d).", numargs - 3, argformat.length());
-		return 0;
+		samp_printf("ERROR: Argument length (%d) does not match format specifier count (%d).", numargs - base_arg_count, argformat.length());
+		return arguments;
 	}
 
 	for(char c : argformat)
@@ -91,7 +119,7 @@ cell Native::RunPython(AMX* amx, cell* params)
 		{
 		case 'd':
 		case 'i':
-			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr);
+			amx_GetAddr(amx, params[arg_count + base_arg_count + 1], &addr_ptr);
 			arg_count++;
 			arg_value = *addr_ptr;
 
@@ -100,7 +128,7 @@ cell Native::RunPython(AMX* amx, cell* params)
 				if(arg_value <= 0)
 				{
 					samp_printf("ERROR: Invalid array size found in int parameter following array parameter.");
-					return 0;
+					return arguments;
 				}
 
 				array_string = "[" + std::to_string(addr_ptr_arr[0]);
@@ -124,7 +152,7 @@ cell Native::RunPython(AMX* amx, cell* params)
 			break;
 
 		case 'f':
-			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr);
+			amx_GetAddr(amx, params[arg_count + base_arg_count + 1], &addr_ptr);
 			arg_value_float = *((float*)addr_ptr);
 			arguments.push_back(std::to_string(arg_value_float));
 			arg_count++;
@@ -133,14 +161,14 @@ cell Native::RunPython(AMX* amx, cell* params)
 			break;
 
 		case 's':
-			arguments.push_back(amx_GetCppString(amx, params[arg_count + 4]));
+			arguments.push_back(amx_GetCppString(amx, params[arg_count + base_arg_count + 1]));
 			arg_count++;
 
-			debug("[arg %d] found parameter of type string: %s", arg_count, amx_GetCppString(amx, params[arg_count + 4]).c_str());
+			debug("[arg %d] found parameter of type string: %s", arg_count, arguments[arg_count - 1].c_str());
 			break;
 
 		case 'a':
-			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr_arr);
+			amx_GetAddr(amx, params[arg_count + base_arg_count + 1], &addr_ptr_arr);
 			arg_count++;
 
 			debug("[arg %d] found parameter of type array (detailed in next d argument)", arg_count);
@@ -151,30 +179,5 @@ cell Native::RunPython(AMX* amx, cell* params)
 		}
 	}
 
-	for(string s : arguments)
-	{
-		debug("Arg: '%s'", s.c_str());
-	}
-
-	return Pawpy::run_python(module, function, callback, arguments);
-}
-
-cell Native::RunPythonThreaded(AMX* amx, cell* params)
-{
-	debug("Native::RunPythonThreaded called");
-
-	string
-		module,
-		function,
-		callback;
-
-	module = amx_GetCppString(amx, params[1]);
-	function = amx_GetCppString(amx, params[2]);
-	callback = amx_GetCppString(amx, params[3]);
-	debug("Native::RunPythonThreaded optained parameters");
-
-	Pawpy::run_python_threaded(module, function, callback);
-	debug("Native::RunPythonThreaded finished");
-
-	return 0;
+	return arguments;
 }

@@ -90,7 +90,7 @@ int Pawpy::run_python(string module, string function, string callback, vector<st
 	Note:
 	Prepares a pycall_t object and creates a thread to run it.
 */
-int Pawpy::run_python_threaded(string module, string function, string callback)
+int Pawpy::run_python_threaded(string module, string function, string callback, vector<string> arguments)
 {
 	debug("run_python_threaded: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
 
@@ -100,6 +100,7 @@ int Pawpy::run_python_threaded(string module, string function, string callback)
 	call.module = module;
 	call.function = function;
 	call.callback = callback;
+	call.arguments = arguments;
 
 	debug("run_python_threaded: creating thread");
 	t = new thread(run_call_thread, call);

@@ -35,6 +35,12 @@
 #ifndef PAWPY_NATIVES_H
 #define PAWPY_NATIVES_H
 
+#include <string>
+#include <vector>
+
+using std::string;
+using std::vector;
+
 #include "main.hpp"
 #include <sdk.hpp>
 
@@ -43,6 +49,8 @@ namespace Native
 {
 	cell RunPython(AMX *amx, cell *params);
 	cell RunPythonThreaded(AMX *amx, cell *params);
+
+	vector<string> extract_params(AMX* amx, cell* params, uint8_t base_arg_count);
 };
 
 #endif

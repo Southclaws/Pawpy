@@ -23,4 +23,4 @@
 
 
 native RunPython(module[], function[], argf[], {Float,_}:...);
-native RunPythonThreaded(module[], function[], callback[]);
+native RunPythonThreaded(module[], function[], callback[], argf[], {Float,_}:...);

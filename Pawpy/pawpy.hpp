@@ -45,6 +45,7 @@ using std::mutex;
 #include "main.hpp"
 #include <sdk.hpp>
 
+
 namespace Pawpy
 {
 
@@ -62,7 +63,7 @@ extern stack<Pawpy::pycall_t> call_stack;
 extern mutex call_stack_mutex;
 
 int run_python(string module, string function, string callback, vector<string> arguments);
-int run_python_threaded(string module, string function, string callback);
+int run_python_threaded(string module, string function, string callback, vector<string> arguments);
 
 void run_call_thread(pycall_t pycall);
 long run_call(pycall_t pycall);
