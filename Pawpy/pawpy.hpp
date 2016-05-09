@@ -66,7 +66,7 @@ int run_python(string module, string function, string callback, vector<string> a
 int run_python_threaded(string module, string function, string callback, vector<string> arguments);
 
 void run_call_thread(pycall_t pycall);
-long run_call(pycall_t pycall);
+char* run_call(pycall_t pycall);
 
 void amx_tick(AMX* amx);
 

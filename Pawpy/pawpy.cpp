@@ -83,7 +83,9 @@ int Pawpy::run_python(string module, string function, string callback, vector<st
 	call.callback = callback;
 	call.arguments = arguments;
 
-	return run_call(call);
+	run_call(call);
+
+	return 0;
 }
 
 /*
@@ -131,17 +133,12 @@ void Pawpy::run_call_thread(pycall_t pycall)
 {
 	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
-	long result_val = run_call(pycall);
+	char* result_val = run_call(pycall);
 
-	char result_str[24];
+	pycall.returns = _strdup(result_val);
 
-	_ltoa_s(result_val, result_str, 10);
-
-	pycall.returns = _strdup(result_str);
-
-	call_stack_mutex.lock();
+	std::lock_guard<std::mutex> lock(call_stack_mutex);
 	call_stack.push(pycall);
-	call_stack_mutex.unlock();
 }
 
 /*
@@ -151,7 +148,7 @@ void Pawpy::run_call_thread(pycall_t pycall)
 	The code is quite daunting and most of it is converting and validating types
 	from C to Python.
 */
-long Pawpy::run_call(pycall_t pycall)
+char* Pawpy::run_call(pycall_t pycall)
 {
 	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
@@ -295,20 +292,41 @@ long Pawpy::run_call(pycall_t pycall)
 	{
 		samp_pyerr();
 		samp_printf("ERROR: Python function call result is null.");
+        return 0;
 	}
 
 	/*
 		Note:
-		Gets the return value of the result from the call. Currently only
-		supports "single cell" types (ints and single chars should convert too)
+		Gets the return value of the result from the call. Return value must be
+		a string, simply because type conversion is easier when there's only one
+		type to deal with.
 	*/
-	long result_val = PyLong_AsLong(result_ptr);
-	debug("run_call: optained module result value '%d' and returning", result_val);
+	PyObject* result_str_ptr = PyUnicode_AsASCIIString(result_ptr);
+	if(result_str_ptr == nullptr)
+	{
+		samp_pyerr();
+		samp_printf("ERROR: Python function call result is not a string.");
+        return 0;
+	}
+
+	char* result_str_char;// = PyByteArray_AsString(result_str_ptr);
+	Py_ssize_t result_str_len;
+	PyBytes_AsStringAndSize(result_str_ptr, &result_str_char, &result_str_len);
+	Py_DECREF(result_str_ptr);
+
+	if(result_str_char == nullptr)
+	{
+		samp_pyerr();
+		samp_printf("ERROR: result_str_char is null.");
+        return 0;
+	}
+
+	debug("run_call: optained module result value '%s' and returning", result_str_char);
 
 	PyGILState_Release(gstate);
 	debug("run_call: released GIL state");
 
-	return result_val;
+	return result_str_char;
 }
 
 /*
@@ -322,17 +340,6 @@ long Pawpy::run_call(pycall_t pycall)
 */
 void Pawpy::amx_tick(AMX* amx)
 {
-	/*
-		Note:
-		Non-blocking mutex check. Calling .lock() here would result in the
-		ProcessTick function getting blocked until the call_stack lock is
-		released. Albeit this would probably be a very short time as pushes only
-		ever occur on this object but just to be safe, if it's locked the plugin
-		simply waits for the next ProcessTick call.
-	*/
-	if(call_stack_mutex.try_lock() == false)
-		return;
-
 	if(call_stack.empty())
 		return;
 
@@ -382,12 +389,4 @@ void Pawpy::amx_tick(AMX* amx)
 
 		Pawpy::call_stack.pop();
 	}
-
-	/*
-		Note:
-		Unlocks the call_stack mutex. try_lock doesn't just test for locks in a
-		non-blocking way, it does the locking too if it can. So unlocking must
-		be done too.
-	*/
-	call_stack_mutex.unlock();
 }
