@@ -181,10 +181,13 @@ void samp_pyerr()
 		}
 	}
 
-	samp_printf("Python error report:");
+	samp_printf("");
+	samp_printf("-- Python error report --");
 	samp_printf(ctype == nullptr ? "no ctype" : ctype);
 	samp_printf(cvalue == nullptr ? "no cvalue" : cvalue);
 	samp_printf(ctrace == nullptr ? "no ctrace" : ctrace);
+	samp_printf("-- End of error report --");
+	samp_printf("");
 }
 
 
