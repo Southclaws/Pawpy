@@ -44,8 +44,10 @@
 
 
 #include <string>
+#include <vector>
 
 using std::string;
+using std::vector;
 
 #include "natives.hpp"
 #include "pawpy.hpp"
@@ -58,15 +60,103 @@ cell Native::RunPython(AMX* amx, cell* params)
 	string
 		module,
 		function,
+		argformat,
 		callback;
+
+	size_t numargs = static_cast<cell>(params[0] / sizeof(cell));
+
+	vector<string> arguments;
+	arguments.reserve(numargs - 3);
+	uint8_t arg_count = 0;
+	cell *addr_ptr = nullptr;
+	cell arg_value;
+	float arg_value_float;
+	cell *addr_ptr_arr = nullptr;
+	string array_string;
 
 	module = amx_GetCppString(amx, params[1]);
 	function = amx_GetCppString(amx, params[2]);
+	argformat = amx_GetCppString(amx, params[3]);
 	callback = "";
 
-	Pawpy::run_python(module, function, callback);
+	if(argformat.length() != numargs - 3)
+	{
+		samp_printf("ERROR: Argument length (%d) does not match format specifier count (%d).", numargs - 3, argformat.length());
+		return 0;
+	}
 
-	return 0;
+	for(char c : argformat)
+	{
+		switch(c)
+		{
+		case 'd':
+		case 'i':
+			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr);
+			arg_count++;
+			arg_value = *addr_ptr;
+
+			if(addr_ptr_arr != nullptr)
+			{
+				if(arg_value <= 0)
+				{
+					samp_printf("ERROR: Invalid array size found in int parameter following array parameter.");
+					return 0;
+				}
+
+				array_string = "[" + std::to_string(addr_ptr_arr[0]);
+				for(int i = 1; i < arg_value; i++)
+				{
+					array_string += ", " + std::to_string(addr_ptr_arr[i]);
+				}
+				array_string += "]";
+
+				arguments.push_back(array_string);
+
+				addr_ptr_arr = nullptr;
+				debug("[arg %d] found parameter of type int: %d as size for array %s", arg_count, arg_value, array_string.c_str());
+			}
+			else
+			{
+				debug("[arg %d] found parameter of type int: %d", arg_count, arg_value);
+			}
+
+			arguments.push_back(std::to_string(arg_value));
+			break;
+
+		case 'f':
+			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr);
+			arg_value_float = *((float*)addr_ptr);
+			arguments.push_back(std::to_string(arg_value_float));
+			arg_count++;
+
+			debug("[arg %d] found parameter of type float: %f", arg_count, arg_value_float);
+			break;
+
+		case 's':
+			arguments.push_back(amx_GetCppString(amx, params[arg_count + 4]));
+			arg_count++;
+
+			debug("[arg %d] found parameter of type string: %s", arg_count, amx_GetCppString(amx, params[arg_count + 4]).c_str());
+			break;
+
+		case 'a':
+			amx_GetAddr(amx, params[arg_count + 4], &addr_ptr_arr);
+			arg_count++;
+
+			debug("[arg %d] found parameter of type array (detailed in next d argument)", arg_count);
+			break;
+
+		default:
+			samp_printf("ERROR: Invalid format specifier: '%c' in RunPython", c);
+		}
+	}
+
+	for(string s : arguments)
+	{
+		debug("Arg: '%s'", s.c_str());
+	}
+
+	return Pawpy::run_python(module, function, callback);
 }
 
 cell Native::RunPythonThreaded(AMX* amx, cell* params)

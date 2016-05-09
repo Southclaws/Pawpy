@@ -22,5 +22,5 @@
 ==============================================================================*/
 
 
-native RunPython(module[], function[]);
+native RunPython(module[], function[], argf[], {Float,_}:...);
 native RunPythonThreaded(module[], function[], callback[]);
