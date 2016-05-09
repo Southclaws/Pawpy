@@ -27,11 +27,13 @@
 
 
 #include <string>
+#include <vector>
 #include <stack>
 #include <thread>
 #include <mutex>
 
 using std::string;
+using std::vector;
 using std::stack;
 using std::thread;
 using std::mutex;
@@ -70,7 +72,7 @@ mutex Pawpy::call_stack_mutex;
 	Note:
 	Prepares a pycall_t object to be called on the main thread.
 */
-int Pawpy::run_python(string module, string function, string callback)
+int Pawpy::run_python(string module, string function, string callback, vector<string> arguments)
 {
 	debug("run_python: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
 
@@ -79,6 +81,7 @@ int Pawpy::run_python(string module, string function, string callback)
 	call.module = module;
 	call.function = function;
 	call.callback = callback;
+	call.arguments = arguments;
 
 	return run_call(call);
 }
@@ -250,13 +253,21 @@ long Pawpy::run_call(pycall_t pycall)
 		Note:
 		This tuple contains the arguments we're passing to the Python function.
 	*/
-	PyObject* args_ptr = PyTuple_New(0);
+	PyObject* args_ptr = PyTuple_New(pycall.arguments.size());
 
 	if(args_ptr == nullptr)
 	{
         samp_pyerr();
         samp_printf("ERROR: Failed to create new PyTuple object.");
         return 0;
+	}
+
+	PyObject* arg_string_ptr;
+
+	for(unsigned int i = 0; i < pycall.arguments.size(); ++i)
+	{
+		arg_string_ptr = PyUnicode_FromString(pycall.arguments[i].c_str());
+		PyTuple_SET_ITEM(args_ptr, i, arg_string_ptr);
 	}
 
 	debug("run_call: created argument tuple");
@@ -282,7 +293,7 @@ long Pawpy::run_call(pycall_t pycall)
 	if(result_ptr == nullptr)
 	{
 		samp_pyerr();
-		samp_printf("ERROR: Python function call failed.");
+		samp_printf("ERROR: Python function call result is null.");
 	}
 
 	/*

@@ -31,11 +31,13 @@
 #define PAWPY_H
 
 #include <string>
+#include <vector>
 #include <stack>
 #include <thread>
 #include <mutex>
 
 using std::string;
+using std::vector;
 using std::stack;
 using std::thread;
 using std::mutex;
@@ -51,6 +53,7 @@ struct pycall_t
 	string module;
 	string function;
 	string callback;
+	vector<string> arguments;
 	std::thread::id threadid;
 	char* returns;
 };
@@ -58,7 +61,7 @@ struct pycall_t
 extern stack<Pawpy::pycall_t> call_stack;
 extern mutex call_stack_mutex;
 
-int run_python(string module, string function, string callback);
+int run_python(string module, string function, string callback, vector<string> arguments);
 int run_python_threaded(string module, string function, string callback);
 
 void run_call_thread(pycall_t pycall);

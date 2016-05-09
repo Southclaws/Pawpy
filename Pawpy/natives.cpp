@@ -156,7 +156,7 @@ cell Native::RunPython(AMX* amx, cell* params)
 		debug("Arg: '%s'", s.c_str());
 	}
 
-	return Pawpy::run_python(module, function, callback);
+	return Pawpy::run_python(module, function, callback, arguments);
 }
 
 cell Native::RunPythonThreaded(AMX* amx, cell* params)
