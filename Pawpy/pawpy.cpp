@@ -127,12 +127,7 @@ void Pawpy::run_call_thread(pycall_t pycall)
 {
 	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
-	PyGILState_STATE gstate = PyGILState_Ensure();
-
-	debug("run_call_thread: calling run_call");
 	long result_val = run_call(pycall);
-
-	PyGILState_Release(gstate);
 
 	char result_str[24];
 
@@ -155,6 +150,9 @@ void Pawpy::run_call_thread(pycall_t pycall)
 long Pawpy::run_call(pycall_t pycall)
 {
 	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
+
+	PyGILState_STATE gstate = PyGILState_Ensure();
+	debug("run_call: locked GIL state");
 
 	PyObject* name_ptr = PyUnicode_FromString(pycall.module.c_str());
 
@@ -294,6 +292,9 @@ long Pawpy::run_call(pycall_t pycall)
 	*/
 	long result_val = PyLong_AsLong(result_ptr);
 	debug("run_call: optained module result value '%d' and returning", result_val);
+
+	PyGILState_Release(gstate);
+	debug("run_call: released GIL state");
 
 	return result_val;
 }

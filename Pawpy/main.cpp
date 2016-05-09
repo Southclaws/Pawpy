@@ -80,7 +80,7 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 	Py_SetProgramName(L"Pawpy");
 	Py_Initialize();
 	PyEval_InitThreads();
-	PyEval_ReleaseLock();
+	PyEval_SaveThread();
 
 	samp_printf("\n");
 	samp_printf("Pawpy - Python utility for Pawn by Southclaw");
