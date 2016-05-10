@@ -30,6 +30,7 @@
 #include <vector>
 #include <stack>
 #include <thread>
+#include <chrono>
 #include <mutex>
 
 using std::string;
@@ -70,12 +71,10 @@ mutex Pawpy::call_stack_mutex;
 
 /*
 	Note:
-	Prepares a pycall_t object to be called on the main thread.
+	Prepares a pycall_t object from input arguments.
 */
-int Pawpy::run_python(string module, string function, string callback, vector<string> arguments)
+Pawpy::pycall_t Pawpy::prepare(string module, string function, string callback, vector<string> arguments)
 {
-	debug("run_python: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
-
 	pycall_t call;
 
 	call.module = module;
@@ -83,29 +82,21 @@ int Pawpy::run_python(string module, string function, string callback, vector<st
 	call.callback = callback;
 	call.arguments = arguments;
 
-	run_call(call);
-
-	return 0;
+	return call;
 }
 
 /*
 	Note:
-	Prepares a pycall_t object and creates a thread to run it.
+	Creates a thread and runs the specified pycall_t object in that thread.
 */
-int Pawpy::run_python_threaded(string module, string function, string callback, vector<string> arguments)
+int Pawpy::run_python_threaded(pycall_t call)
 {
-	debug("run_python_threaded: %s, %s, %s", module.c_str(), function.c_str(), callback.c_str());
+	debug("run_python_threaded: %s, %s, %s", call.module.c_str(), call.function.c_str(), call.callback.c_str());
 
-	pycall_t call;
 	thread* t = nullptr;
 
-	call.module = module;
-	call.function = function;
-	call.callback = callback;
-	call.arguments = arguments;
-
 	debug("run_python_threaded: creating thread");
-	t = new thread(run_call_thread, call);
+	t = new thread(python_thread, call);
 
 	if(t == nullptr)
 	{
@@ -129,11 +120,11 @@ int Pawpy::run_python_threaded(string module, string function, string callback, 
 	result is ready, it locks the call_stack and pushes the pycall_t object
 	ready for the next ProcessTick to call into the AMX with the result.
 */
-void Pawpy::run_call_thread(pycall_t pycall)
+void Pawpy::python_thread(pycall_t pycall)
 {
 	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
-	char* result_val = run_call(pycall);
+	char* result_val = run_python(pycall);
 
 	pycall.returns = _strdup(result_val);
 
@@ -144,11 +135,11 @@ void Pawpy::run_call_thread(pycall_t pycall)
 /*
 	Note:
 	This function takes a pycall_t object and runs the actual Python module it
-	specifies. It returns the result as a long but this will probably change.
-	The code is quite daunting and most of it is converting and validating types
-	from C to Python.
+	specifies. It returns the result from the Python script which must be a
+	string. The code is quite daunting and most of it is converting and
+	validating types from C to Python.
 */
-char* Pawpy::run_call(pycall_t pycall)
+char* Pawpy::run_python(pycall_t pycall)
 {
 	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
@@ -183,7 +174,7 @@ char* Pawpy::run_call(pycall_t pycall)
 	PyList_Append(sysPath, programName);
 	Py_DECREF(programName);
 
-	free(cwd);
+	delete cwd;
 
 	/*
 		Note:
@@ -358,7 +349,7 @@ void Pawpy::amx_tick(AMX* amx)
 
 		if(error == AMX_ERR_NONE)
 		{
-			debug("amx_tick callback: %s, %s, %s", call.module.c_str(), call.function.c_str(), call.callback.c_str());
+			debug("amx_tick: callback: %s, %s, %s", call.module.c_str(), call.function.c_str(), call.callback.c_str());
 
 			/*
 				Note:
@@ -374,12 +365,21 @@ void Pawpy::amx_tick(AMX* amx)
 			amx_Exec(amx, &amx_ret, amx_idx);
 			amx_Release(amx, amx_addr);
 
-			switch(amx_ret)
+			debug("amx_tick: callback return value: %d", amx_ret);
+
+			std::this_thread::sleep_for(std::chrono::duration<int, std::ratio<1>>(1));
+
+			if(amx_ret > 0)
 			{
-			case 0:
-				break;
-			case 1:
-				continue;
+				debug("amx_tick: callback returned 1, re-running Python call in %d ms", amx_ret);
+				/*
+					Note:
+					Free the memory that the 'returns' points to and set it to a
+					null pointer for the next call.
+				*/
+				delete call.returns;
+				call.returns = nullptr;
+				run_python_threaded(call);
 			}
 		}
 		else

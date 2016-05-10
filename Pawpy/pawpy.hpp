@@ -62,11 +62,12 @@ struct pycall_t
 extern stack<Pawpy::pycall_t> call_stack;
 extern mutex call_stack_mutex;
 
-int run_python(string module, string function, string callback, vector<string> arguments);
-int run_python_threaded(string module, string function, string callback, vector<string> arguments);
+pycall_t prepare(string module, string function, string callback, vector<string> arguments);
 
-void run_call_thread(pycall_t pycall);
-char* run_call(pycall_t pycall);
+int run_python_threaded(pycall_t call);
+void python_thread(pycall_t pycall);
+
+char* run_python(pycall_t pycall);
 
 void amx_tick(AMX* amx);
 

@@ -68,12 +68,17 @@ cell Native::RunPython(AMX* amx, cell* params)
 	function = amx_GetCppString(amx, params[2]);
 	callback = "";
 
-	return Pawpy::run_python(module, function, callback, arguments);
+	char* result = Pawpy::run_python(Pawpy::prepare(module, function, callback, arguments));
+
+	// todo: return result back to samp somehow
+	delete result;
+
+	return 1;
 }
 
 cell Native::RunPythonThreaded(AMX* amx, cell* params)
 {
-	debug("Native::RunPythonThreaded called");
+	debug("RunPythonThreaded: called");
 
 	string
 		module,
@@ -85,10 +90,10 @@ cell Native::RunPythonThreaded(AMX* amx, cell* params)
 	module = amx_GetCppString(amx, params[1]);
 	function = amx_GetCppString(amx, params[2]);
 	callback = amx_GetCppString(amx, params[3]);
-	debug("Native::RunPythonThreaded optained parameters");
+	debug("RunPythonThreaded: optained parameters");
 
-	Pawpy::run_python_threaded(module, function, callback, arguments);
-	debug("Native::RunPythonThreaded finished");
+	Pawpy::run_python_threaded(Pawpy::prepare(module, function, callback, arguments));
+	debug("RunPythonThreaded: finished");
 
 	return 0;
 }

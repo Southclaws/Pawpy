@@ -122,6 +122,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>plugin.def</ModuleDefinitionFile>
     </Link>
+    <PostBuildEvent>
+      <Command>call "$(SolutionDir)Test\test.bat" "debug"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
