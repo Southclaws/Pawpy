@@ -68,10 +68,9 @@ cell Native::RunPython(AMX* amx, cell* params)
 	function = amx_GetCppString(amx, params[2]);
 	callback = "";
 
-	char* result = Pawpy::run_python(Pawpy::prepare(module, function, callback, arguments));
+	string result = Pawpy::run_python(Pawpy::prepare(module, function, callback, arguments));
 
 	// todo: return result back to samp somehow
-	delete result;
 
 	return 1;
 }

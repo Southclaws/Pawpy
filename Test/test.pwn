@@ -5,7 +5,7 @@
 forward OnLocationFound(module[], result[], length);
 forward stop();
 
-new ret1 = 100;
+new ret1 = true;
 
 main()
 {
@@ -22,19 +22,15 @@ public OnLocationFound(module[], result[], length)
 {
 	printf("Module '%s' result: '%s', length: %d", module, result, length);
 
-	printf("ret %d", ret1);
-	if((ret1 -= 1) < 0)
-	{
-		printf("ret %d", ret1);
+	if(!ret1)
 		return 0;
-	}
 
 	else
 		return 1;
 }
 
-//public stop()
-//{
-//	print("Stopping");
-//	ret1 = false;
-//}
+public stop()
+{
+	print("Stopping");
+	ret1 = false;
+}

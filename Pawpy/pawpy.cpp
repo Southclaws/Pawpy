@@ -124,9 +124,7 @@ void Pawpy::python_thread(pycall_t pycall)
 {
 	debug("run_call_thread: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
-	char* result_val = run_python(pycall);
-
-	pycall.returns = _strdup(result_val);
+	pycall.returns = run_python(pycall);
 
 	std::lock_guard<std::mutex> lock(call_stack_mutex);
 	call_stack.push(pycall);
@@ -139,7 +137,7 @@ void Pawpy::python_thread(pycall_t pycall)
 	string. The code is quite daunting and most of it is converting and
 	validating types from C to Python.
 */
-char* Pawpy::run_python(pycall_t pycall)
+string Pawpy::run_python(pycall_t pycall)
 {
 	debug("run_call: %s, %s, %s", pycall.module.c_str(), pycall.function.c_str(), pycall.callback.c_str());
 
@@ -317,7 +315,7 @@ char* Pawpy::run_python(pycall_t pycall)
 	PyGILState_Release(gstate);
 	debug("run_call: released GIL state");
 
-	return result_str_char;
+	return string(result_str_char);
 }
 
 /*
@@ -358,8 +356,8 @@ void Pawpy::amx_tick(AMX* amx)
 				it is pushed first.
 				The callback parameter format is: (string[], len)
 			*/
-			amx_Push(amx, strlen(call.returns));
-			amx_PushString(amx, &amx_addr, &phys_addr, call.returns, 0, 0);
+			amx_Push(amx, call.returns.length());
+			amx_PushString(amx, &amx_addr, &phys_addr, call.returns.c_str(), 0, 0);
 			amx_PushString(amx, &amx_addr, &phys_addr, call.module.c_str(), 0, 0);
 
 			amx_Exec(amx, &amx_ret, amx_idx);
@@ -374,13 +372,12 @@ void Pawpy::amx_tick(AMX* amx)
 				debug("amx_tick: callback returned 1, re-running Python call in %d ms", amx_ret);
 				/*
 					Note:
-					Free the memory that the 'returns' points to and set it to a
-					null pointer for the next call.
+					Doesn't quite work yet, some kind of memory leak making this
+					kind of inter-thread recursion problematic...
 				*/
-				delete call.returns;
-				call.returns = nullptr;
-				run_python_threaded(call);
+				//run_python_threaded(call);
 			}
+
 		}
 		else
 		{

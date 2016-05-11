@@ -56,7 +56,7 @@ struct pycall_t
 	string callback;
 	vector<string> arguments;
 	std::thread::id threadid;
-	char* returns;
+	string returns;
 };
 
 extern stack<Pawpy::pycall_t> call_stack;
@@ -67,7 +67,7 @@ pycall_t prepare(string module, string function, string callback, vector<string>
 int run_python_threaded(pycall_t call);
 void python_thread(pycall_t pycall);
 
-char* run_python(pycall_t pycall);
+string run_python(pycall_t pycall);
 
 void amx_tick(AMX* amx);
 
