@@ -38,7 +38,28 @@
 #include <malloc.h>
 #include <stdint.h>
 #include <stdarg.h>
+
+/*
+	Note:
+	On Windows we want "direct.h" for manipulating directories but on Linux,
+	we want the Linux system library "stat.h" instead.
+*/
+#ifdef _WIN32
+
 #include <direct.h>
+#define VSPRINTF vsprintf_s
+#define STRDUP _strdup
+#define GETCWD _getcwd
+
+
+#elif defined __linux__
+
+#include <sys/stat.h>
+#define VSPRINTF vsnprintf
+#define STRDUP strdup
+#define GETCWD getcwd
+
+#endif
 
 /*
 	Note:
@@ -59,3 +80,11 @@ void samp_pyerr();
 #else
 #define debug(message, ...)
 #endif
+
+typedef void
+	(*logprintf_t)(const char *, ...)
+;
+
+extern logprintf_t
+	logprintf
+;

@@ -37,7 +37,9 @@
 using std::set;
 
 // sdk related
-#include <sdk.hpp>
+#include <amx/amx.h>
+#include <amx/amx2.h>
+#include <plugincommon.h>
 
 // project related
 #include "natives.hpp"
@@ -123,7 +125,7 @@ void samp_printf(const char* message, ...)
 	va_list args;
 	va_start(args, message);
 
-	vsprintf_s(result, len, message, args);
+	VSPRINTF(result, len, message, args);
 	logprintf(result);
 
 	va_end(args);
@@ -152,7 +154,7 @@ void samp_pyerr()
 		if(result != nullptr)
 		{
 			ctype = PyBytes_AS_STRING(result);
-			ctype = _strdup(ctype);
+			ctype = STRDUP(ctype);
 			Py_DECREF(result);
 		}
 	}
@@ -164,7 +166,7 @@ void samp_pyerr()
 		if(result != nullptr)
 		{
 			cvalue = PyBytes_AS_STRING(result);
-			cvalue = _strdup(cvalue);
+			cvalue = STRDUP(cvalue);
 			Py_DECREF(result);
 		}
 	}
@@ -176,7 +178,7 @@ void samp_pyerr()
 		if(result != nullptr)
 		{
 			ctrace = PyBytes_AS_STRING(result);
-			ctrace = _strdup(ctrace);
+			ctrace = STRDUP(ctrace);
 			Py_DECREF(result);
 		}
 	}

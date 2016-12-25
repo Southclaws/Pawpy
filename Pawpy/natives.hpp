@@ -42,7 +42,9 @@ using std::string;
 using std::vector;
 
 #include "main.hpp"
-#include <sdk.hpp>
+#include <amx/amx.h>
+#include <amx/amx2.h>
+#include <plugincommon.h>
 
 
 namespace Native 

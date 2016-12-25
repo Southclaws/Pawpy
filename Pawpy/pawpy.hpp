@@ -43,7 +43,9 @@ using std::thread;
 using std::mutex;
 
 #include "main.hpp"
-#include <sdk.hpp>
+#include <amx/amx.h>
+#include <amx/amx2.h>
+#include <plugincommon.h>
 
 
 namespace Pawpy

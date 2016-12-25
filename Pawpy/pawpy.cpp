@@ -43,7 +43,9 @@ using std::mutex;
 #include "python_meta.hpp"
 
 #include "pawpy.hpp"
-#include <sdk.hpp>
+#include <amx/amx.h>
+#include <amx/amx2.h>
+#include <plugincommon.h>
 
 
 /*
@@ -165,7 +167,7 @@ string Pawpy::run_python(pycall_t pycall)
 	*/
 	char* cwd;
 
-	cwd = _getcwd(NULL, 0);
+	cwd = GETCWD(NULL, 0);
 
 	PyObject* sysPath = PySys_GetObject((char*)"path");
 	PyObject* programName = PyUnicode_FromString(cwd);
