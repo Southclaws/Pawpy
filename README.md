@@ -1,5 +1,7 @@
 # Pawpy
 
+**Note: This project has been abandoned in favour of [pawn-requests](https://github.com/Southclaws/pawn-requests/) as a reliable way to interface with other applications. The source code remains here for archival and educational purposes only. It will build (with considerable effort) and work, but it doesn't permit any form of external packages from PyPI.**
+
 Threaded Python utility plugin for SA:MP - unifying two of my favourite languages! Run threaded Python scripts from within a SA:MP script.
 
 ## What?
@@ -25,7 +27,3 @@ It's a pretty basic plugin and could be very easily adapted to call scripts in a
 ### Talking of system calls, why not just use exec?
 
 The use of python.h and integration instead of a simple system call is so that more detailed information about the module can be get and set via the plugin. It's also slightly faster and threaded execution can be controlled more.
-
-## When?
-
-I wrote the first commit in a morning. Shouldn't take long to finsh the rest of the project and test it. The main objectives now are thread safety, Linux compatibility and integrating Python features.
